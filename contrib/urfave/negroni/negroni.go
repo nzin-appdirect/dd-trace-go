@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/urfave/negroni"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
@@ -14,16 +15,6 @@ import (
 
 type DatadogMiddleware struct {
 	cfg *config
-}
-
-type StatusRecorder struct {
-	http.ResponseWriter
-	Status int
-}
-
-func (r *StatusRecorder) WriteHeader(status int) {
-	r.Status = status
-	r.ResponseWriter.WriteHeader(status)
 }
 
 func (m *DatadogMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
@@ -45,16 +36,14 @@ func (m *DatadogMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request, ne
 	defer span.Finish()
 
 	r = r.WithContext(ctx)
-	recorder := &StatusRecorder{
-		ResponseWriter: w,
-		Status:         200,
-	}
 
-	next(recorder, r)
+	next(w, r)
 
-	span.SetTag(ext.HTTPCode, strconv.Itoa(recorder.Status))
-	if recorder.Status >= 500 && recorder.Status < 600 {
-		span.SetTag(ext.Error, fmt.Errorf("%d: %s", recorder.Status, http.StatusText(recorder.Status)))
+	responseWriter := w.(negroni.ResponseWriter)
+	status := responseWriter.Status()
+	span.SetTag(ext.HTTPCode, strconv.Itoa(status))
+	if status >= 500 && status < 600 {
+		span.SetTag(ext.Error, fmt.Errorf("%d: %s", status, http.StatusText(status)))
 	}
 }
 
