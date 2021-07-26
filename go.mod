@@ -1,4 +1,4 @@
-module github.com/nzin-appdirect/dd-trace-go.v1
+module gopkg.in/DataDog/dd-trace-go.v1
 
 go 1.12
 
