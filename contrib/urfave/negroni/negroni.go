@@ -32,7 +32,7 @@ func (m *DatadogMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request, ne
 		opts = append(opts, tracer.ChildOf(spanctx))
 	}
 	opts = append(opts, m.cfg.spanOpts...)
-	span, ctx := tracer.StartSpanFromContext(r.Context(), "http.request", opts...)
+	span, ctx := tracer.StartSpanFromContext(r.Context(), fmt.Sprintf("%s %s", r.Method, r.URL.Path), opts...)
 	defer span.Finish()
 
 	r = r.WithContext(ctx)
